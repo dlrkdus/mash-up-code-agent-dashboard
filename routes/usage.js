@@ -83,9 +83,16 @@ function getUsageState() { return usageState; }
 // ── Helpers ─────────────────────────────────────
 function normalizeModel(raw) {
   if (!raw || typeof raw !== 'string') return null;
-  const m = raw.match(/^claude-([a-z]+)-([\d]+)-([\d]+)/);
-  if (!m) return null; // <synthetic> 등 내부 모델 제외
-  return m[1].charAt(0).toUpperCase() + m[1].slice(1) + ' ' + m[2] + '.' + m[3];
+  const parts = raw.split('-');
+  if (parts[0] !== 'claude' || parts.length < 3) return null; // <synthetic> 등 내부 모델 제외
+  const name = parts[1];
+  if (!/^[a-z]+$/.test(name)) return null;
+  let versionParts = parts.slice(2);
+  // 날짜 접미사(YYYYMMDD, 예: claude-opus-4-1-20250805)는 버전에서 제외
+  const last = versionParts[versionParts.length - 1];
+  if (/^\d{8}$/.test(last)) versionParts = versionParts.slice(0, -1);
+  if (versionParts.length === 0 || !versionParts.every((p) => /^\d+$/.test(p))) return null;
+  return name.charAt(0).toUpperCase() + name.slice(1) + ' ' + versionParts.join('.');
 }
 
 function toLocalDateKey(input) {
